@@ -1,4 +1,5 @@
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -21,15 +22,59 @@ def backup(modules):
     for module in modules:
         module.send(data)
 
-    return
-
     start_time = datetime.now()
 
+    command = f"/usr/bin/rclone "
+
+    with open("options.json") as file:
+        options = json.load(file)
+        command += options["operation"] + " "
+        for flag in options["flags"]:
+            command += f"--{flag} "
+        for argument in options["arguments"]:
+            command += f"--{argument} {options['arguments'][argument]} "
+        for exclusion in options["exclusions"]:
+            command += f"--exclude {exclusion} "
+
+        if options["direction"].lower() == "push":
+            try:
+                command += options["source_remote"] + ":"
+            except KeyError:
+                command += ""
+            try:
+                command += options["source_path"] + " "
+            except KeyError:
+                command += " "
+            try:
+                command += options["remote"] + ":"
+            except KeyError:
+                command += ""
+            try:
+                command += options["remote_path"]
+            except KeyError:
+                command += ""
+        elif options["direction"].lower() == "pull":
+            try:
+                command += options["remote"] + ":"
+            except KeyError:
+                command += ""
+            try:
+                command += options["remote_path"] + " "
+            except KeyError:
+                command += " "
+            try:
+                command += options["source_remote"] + ":"
+            except KeyError:
+                command += ""
+            try:
+                command += options["source_path"]
+            except KeyError:
+                command += ""
+
+    print(command)
+
     # Run the backup
-    process = subprocess.Popen(
-        f'/usr/bin/rclone copy --checksum --verbose --transfers 12 --checkers 4 --contimeout 60s --timeout 300s --retries 3 --low-level-retries 10 --delete-excluded --exclude /Downloads/** --exclude /.var/app/com.valvesoftware.Steam/** --exclude /Games/** --exclude /Games_bak/** --exclude /Documents/Nextcloud/** --exclude /Pictures/Nextcloud/** --exclude /.local/share/Trash/** --exclude /vms/** --exclude /devel/git/** --exclude *.iso --stats 1s --stats-file-name-length 0 --fast-list /home/mhanson {remote}:',
-        shell=True, stdout=subprocess.PIPE
-    )
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     process.wait()
 
     time.sleep(60)
