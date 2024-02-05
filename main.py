@@ -9,8 +9,6 @@ from datetime import datetime
 import requests
 from modules import discord, homeassistant, mail
 
-CWD = os.path.dirname(os.path.realpath(__file__)) + "/"
-
 def backup(modules):
     remote = 'encrypted'
 
@@ -29,7 +27,7 @@ def backup(modules):
 
     command = f"/usr/bin/rclone "
 
-    with open(CWD + "options.json") as file:
+    with open("options.json") as file:
         options = json.load(file)
         command += options["operation"] + " "
         for flag in options["flags"]:
@@ -37,7 +35,7 @@ def backup(modules):
         for argument in options["arguments"]:
             command += f"--{argument} {options['arguments'][argument]} "
         for exclusion in options["exclusions"]:
-            command += f"--exclude '{exclusion}' "
+            command += f"--exclude {exclusion} "
 
         if options["direction"].lower() == "push":
             try:
@@ -103,7 +101,7 @@ def backup(modules):
 # Handle method (sync, move, copy)
 # Direction (push, pull)
 def main(args):
-    with open(CWD + "secrets.json") as file:
+    with open("secrets.json") as file:
         secrets = json.load(file)
 
     modules = []
