@@ -63,7 +63,7 @@ def calculate_size():
 
     return files_to_backup
 
-def backup(modules):
+def backup(modules, required=[]):
     remote = 'encrypted'
 
     diff = calculate_size()
@@ -89,11 +89,14 @@ def backup(modules):
         try:
             module.send(data)
         except Exception as e:
+            if module in required:
+                raise Exception(f"Error sending alert to required module {module.name}")
             print(f"Warning: module {module.name} failed when pushing alert")
             failed_modules.append({
                 "module": module.name,
                 "exception": e.__class__.__name__
             })
+
 
     start_time = datetime.now()
 
@@ -175,7 +178,16 @@ def backup(modules):
             })
 
     for module in modules:
-        module.send(data)
+        try:
+            module.send(data)
+        except Exception as e:
+            if module in required:
+                raise Exception(f"Error sending alert to required module {module.name}")
+            print(f"Warning: module {module.name} failed when pushing alert")
+            failed_modules.append({
+                "module": module.name,
+                "exception": e.__class__.__name__
+            })
 
 # Handles the remotes
 # Handle remote path
@@ -187,17 +199,20 @@ def main(args):
         secrets = json.load(file)
 
     modules = []
+    required_modules = []
 
     if "discord" in secrets:
         discord_secrets = secrets["discord"]
-        required = discord_secrets["required"] if discord_secrets["required"] else False
-        modules.append(discord.Discord(discord_secrets["webhook"], ))
+        modules.append(discord.Discord(discord_secrets["webhook"]))
+        if discord_secrets["required"]:
+            required_modules.append(modules[-1])
     if "homeassistant" in secrets:
         homeassistant_secrets = secrets["homeassistant"]
         server = homeassistant_secrets["server"]
         api_key = homeassistant_secrets["api_key"]
-        required = homeassistant_secrets["required"] if homeassistant_secrets["required"] else False
-        modules.append(homeassistant.HomeAssistant(api_key, server, required))
+        modules.append(homeassistant.HomeAssistant(api_key, server))
+        if homeassistant_secrets["required"]:
+            required_modules.append(modules[-1])
     if "mail" in secrets:
         mail_secrets = secrets["mail"]
         server = mail_secrets["server"]
@@ -207,8 +222,9 @@ def main(args):
         username = mail_secrets["username"] if mail_secrets["username"] else sender
         password = mail_secrets["password"]
         protocol = mail_secrets["protocol"]
-        required = mail_secrets["required"] if mail_secrets["required"] else False
-        modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol, required))
+        if mail_secrets["required"]:
+            required_modules.append(modules[-1])
+        modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol))
 
     diff = calculate_size()
     for file in diff:
