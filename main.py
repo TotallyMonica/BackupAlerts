@@ -66,22 +66,22 @@ def calculate_size():
 def backup(modules, required=[]):
     remote = 'encrypted'
 
-    diff = calculate_size()
-    if len(diff) == 0:
-        data = {
-            "source": socket.gethostname(),
-            "remote": remote,
-            "status": "cancel"
-        }
-    else:
-        # Backup information
-        data = {
-            "source": socket.gethostname(),
-            "remote": remote,
-            "status": "starting",
-            "count": len(diff),
-            "size": sum(size[1] for size in diff)
-        }
+    # diff = calculate_size()
+    # if len(diff) == 0:
+    #     data = {
+    #         "source": socket.gethostname(),
+    #         "remote": remote,
+    #         "status": "cancel"
+    #     }
+    # else:
+    #     # Backup information
+    data = {
+        "source": socket.gethostname(),
+        "remote": remote,
+        "status": "starting",
+        # "count": len(diff),
+        # "size": sum(size[1] for size in diff)
+    }
 
     # Notify each of the specified modules
     failed_modules = []
@@ -165,8 +165,8 @@ def backup(modules, required=[]):
         "status": "complete",
         "result": process.returncode,
         "time": total_time,
-        "count": len(diff),
-        "size": sum(size[1] for size in diff)
+        # "count": len(diff),
+        # "size": sum(size[1] for size in diff)
     }
 
     # If we have any failed modules add them to the report
@@ -204,14 +204,14 @@ def main(args):
     if "discord" in secrets:
         discord_secrets = secrets["discord"]
         modules.append(discord.Discord(discord_secrets["webhook"]))
-        if discord_secrets["required"]:
+        if "required" in discord_secrets and discord_secrets["required"]:
             required_modules.append(modules[-1])
     if "homeassistant" in secrets:
         homeassistant_secrets = secrets["homeassistant"]
         server = homeassistant_secrets["server"]
         api_key = homeassistant_secrets["api_key"]
         modules.append(homeassistant.HomeAssistant(api_key, server))
-        if homeassistant_secrets["required"]:
+        if "required" in homeassistant_secrets and homeassistant_secrets["required"]:
             required_modules.append(modules[-1])
     if "mail" in secrets:
         mail_secrets = secrets["mail"]
@@ -222,17 +222,17 @@ def main(args):
         username = mail_secrets["username"] if mail_secrets["username"] else sender
         password = mail_secrets["password"]
         protocol = mail_secrets["protocol"]
-        if mail_secrets["required"]:
+        if "required" in mail_secrets and mail_secrets["required"]:
             required_modules.append(modules[-1])
         modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol))
 
-    diff = calculate_size()
-    for file in diff:
-        print(file)
-    print(f"Number of files to back up: {len(diff)}")
-    print(f"Size of files to back up: {friendly_size(sum(size[1] for size in diff))}")
+    # diff = calculate_size()
+    # for file in diff:
+    #     print(file)
+    # print(f"Number of files to back up: {len(diff)}")
+    # print(f"Size of files to back up: {friendly_size(sum(size[1] for size in diff))}")
 
-    # backup(modules)
+    backup(modules, required_modules)
 
 if __name__ == "__main__":
     main(sys.argv)
