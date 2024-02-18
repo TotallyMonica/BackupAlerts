@@ -8,6 +8,20 @@ import time
 from datetime import datetime
 import requests
 from modules import discord, homeassistant, mail
+from enum import Enum
+
+class ErrorCode(Enum):
+    SUCCESS = 0
+    SYNTAX_USAGE_ERROR = 1
+    NOT_OTHERWISE_CATEGORISED = 2
+    DIRECTORY_NOT_FOUND = 3
+    FILE_NOT_FOUND = 4
+    TEMPORARY_ERROR = 5
+    LESS_SERIOUS_ERROR = 6
+    FATAL_ERROR = 7
+    TRANSFER_EXCEEDED = 8
+    NO_FILES_TRANSFERRED = 9
+    DURATION_EXCEEDED = 10
 
 CWD = os.path.dirname(os.path.realpath(__file__)) + "/"
 
