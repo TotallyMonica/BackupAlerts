@@ -43,8 +43,7 @@ def friendly_size(size):
 
     return f"{round(size, 2)} {units[f'{unit}']}"
 
-def calculate_size():
-
+def calculate_size(remote):
     # Build remote information
     with open(CWD + "options.json") as file:
         options = json.load(file)
@@ -55,7 +54,7 @@ def calculate_size():
         if "source_path" in options:
             source += options["source_path"]
         if "remote" in options:
-            dest += options["remote"] + ":"
+            dest += remote + ":"
         if "remote_path" in options:
             dest += options["remote_path"]
 
@@ -77,10 +76,8 @@ def calculate_size():
 
     return files_to_backup
 
-def backup(modules, required=[]):
-    remote = 'encrypted'
-
-    # diff = calculate_size()
+def backup(modules, options, remote, required=[]):
+    # diff = calculate_size(remote)
     # if len(diff) == 0:
     #     data = {
     #         "source": socket.gethostname(),
@@ -116,50 +113,48 @@ def backup(modules, required=[]):
 
     command = f"/usr/bin/rclone "
 
-    with open(CWD + "options.json") as file:
-        options = json.load(file)
-        command += options["operation"] + " "
-        for flag in options["flags"]:
-            command += f"--{flag} "
-        for argument in options["arguments"]:
-            command += f"--{argument} {options['arguments'][argument]} "
-        for exclusion in options["exclusions"]:
-            command += f"--exclude {exclusion} "
+    command += options["operation"] + " "
+    for flag in options["flags"]:
+        command += f"--{flag} "
+    for argument in options["arguments"]:
+        command += f"--{argument} {options['arguments'][argument]} "
+    for exclusion in options["exclusions"]:
+        command += f"--exclude {exclusion} "
 
-        if options["direction"].lower() == "push":
-            try:
-                command += options["source_remote"] + ":"
-            except KeyError:
-                command += ""
-            try:
-                command += options["source_path"] + " "
-            except KeyError:
-                command += " "
-            try:
-                command += options["remote"] + ":"
-            except KeyError:
-                command += ""
-            try:
-                command += options["remote_path"]
-            except KeyError:
-                command += ""
-        elif options["direction"].lower() == "pull":
-            try:
-                command += options["remote"] + ":"
-            except KeyError:
-                command += ""
-            try:
-                command += options["remote_path"] + " "
-            except KeyError:
-                command += " "
-            try:
-                command += options["source_remote"] + ":"
-            except KeyError:
-                command += ""
-            try:
-                command += options["source_path"]
-            except KeyError:
-                command += ""
+    if options["direction"].lower() == "push":
+        try:
+            command += options["source_remote"] + ":"
+        except KeyError:
+            command += ""
+        try:
+            command += options["source_path"] + " "
+        except KeyError:
+            command += " "
+        try:
+            command += remote + ":"
+        except KeyError:
+            command += ""
+        try:
+            command += options["remote_path"]
+        except KeyError:
+            command += ""
+    elif options["direction"].lower() == "pull":
+        try:
+            command += remote + ":"
+        except KeyError:
+            command += ""
+        try:
+            command += options["remote_path"] + " "
+        except KeyError:
+            command += " "
+        try:
+            command += options["source_remote"] + ":"
+        except KeyError:
+            command += ""
+        try:
+            command += options["source_path"]
+        except KeyError:
+            command += ""
 
     print(command)
 
@@ -209,8 +204,14 @@ def backup(modules, required=[]):
 # Handle method (sync, move, copy)
 # Direction (push, pull)
 def main(args):
-    with open(CWD + "secrets.json") as file:
-        secrets = json.load(file)
+    if "--no-notify" in args:
+        secrets = {}
+    else:
+        with open(CWD + "secrets.json") as file:
+            secrets = json.load(file)
+
+    with open(CWD + "options.json") as file:
+        options = json.load(file)
 
     modules = []
     required_modules = []
@@ -240,13 +241,11 @@ def main(args):
             required_modules.append(modules[-1])
         modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol))
 
-    # diff = calculate_size()
-    # for file in diff:
-    #     print(file)
-    # print(f"Number of files to back up: {len(diff)}")
-    # print(f"Size of files to back up: {friendly_size(sum(size[1] for size in diff))}")
-
-    backup(modules, required_modules)
+    if type(options['remote']) == list:
+        for remote in options['remote']:
+            backup(modules, options, remote, required_modules)
+    else:
+        backup(modules, options, options['remote'], required_modules)
 
 if __name__ == "__main__":
     main(sys.argv)
