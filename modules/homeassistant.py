@@ -3,7 +3,7 @@ import requests
 import json
 
 class HomeAssistant:
-    def __init__(self, token, url):
+    def __init__(self, token, url, notify_level = 7):
         if token:
             self.token = token
         else:
@@ -16,6 +16,8 @@ class HomeAssistant:
                 self.url = url
         else:
             raise Exception("Error: URL is missing for the Home Assistant integration or is incorrectly formatted")
+
+        self.notify_level = notify_level
 
     def send(self, data):
         # Create the headers needed for the server

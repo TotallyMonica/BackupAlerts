@@ -4,8 +4,9 @@ import socket
 import json
 
 class Discord:
-    def __init__(self, webhook):
+    def __init__(self, webhook, notify_level = 7):
         self.webhook = webhook
+        self.notify_level = notify_level
 
     def send(self, data):
         if data['status'] == 'starting':

@@ -5,7 +5,7 @@ import socket
 
 
 class Mail:
-    def __init__(self, recipients, sender: str, username: str, password: str, server: str="localhost", port: int=587, protocol: str="STARTTLS"):
+    def __init__(self, recipients, sender: str, username: str, password: str, server: str="localhost", port: int=587, protocol: str="STARTTLS", notify_level = 7):
         if type(recipients) is list or type(recipients) is tuple:
             self.recipients = recipients
         elif type(recipients) is str:
@@ -17,6 +17,7 @@ class Mail:
         self.password = password
         self.port = port
         self.server = server
+        self.notify_level = notify_level
 
     def send(self, data: dict):
         subject = f"Backup from {data['source']} to {data['remote']}"

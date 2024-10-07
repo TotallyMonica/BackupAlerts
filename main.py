@@ -97,17 +97,17 @@ def backup(modules, options, remote, required=[]):
     # Notify each of the specified modules
     failed_modules = []
     for module in modules:
-        try:
-            module.send(data)
-        except Exception as e:
-            if module in required:
-                raise Exception(f"Error sending alert to required module {module.name}")
-            print(f"Warning: module {module.name} failed when pushing alert")
-            failed_modules.append({
-                "module": module.name,
-                "exception": e.__class__.__name__
-            })
-
+        if module.notify_level >> 2 & 1:    # Bitwise should be 100 minimum
+            try:
+                module.send(data)
+            except Exception as e:
+                if module in required:
+                    raise Exception(f"Error sending alert to required module {module.name}")
+                print(f"Warning: module {module.name} failed when pushing alert")
+                failed_modules.append({
+                    "module": module.name,
+                    "exception": e.__class__.__name__
+                })
 
     start_time = datetime.now()
 
@@ -187,16 +187,18 @@ def backup(modules, options, remote, required=[]):
             })
 
     for module in modules:
-        try:
-            module.send(data)
-        except Exception as e:
-            if module in required:
-                raise Exception(f"Error sending alert to required module {module.name}")
-            print(f"Warning: module {module.name} failed when pushing alert")
-            failed_modules.append({
-                "module": module.name,
-                "exception": e.__class__.__name__
-            })
+        if (module.notify_level >> 2 & 1 and process.returncode == 0) \
+            or (module.notify_level & 1 and not process.returncode == 0):   # Successful bitwise: 010, failure: 001
+            try:
+                module.send(data)
+            except Exception as e:
+                if module in required:
+                    raise Exception(f"Error sending alert to required module {module.name}")
+                print(f"Warning: module {module.name} failed when pushing alert")
+                failed_modules.append({
+                    "module": module.name,
+                    "exception": e.__class__.__name__
+                })
 
 # Handles the remotes
 # Handle remote path
@@ -218,14 +220,15 @@ def main(args):
 
     if "discord" in secrets:
         discord_secrets = secrets["discord"]
-        modules.append(discord.Discord(discord_secrets["webhook"]))
+        modules.append(discord.Discord(discord_secrets["webhook"], discord_secrets["notify_level"]))
         if "required" in discord_secrets and discord_secrets["required"]:
             required_modules.append(modules[-1])
     if "homeassistant" in secrets:
         homeassistant_secrets = secrets["homeassistant"]
         server = homeassistant_secrets["server"]
         api_key = homeassistant_secrets["api_key"]
-        modules.append(homeassistant.HomeAssistant(api_key, server))
+        notify_level = homeassistant_secrets["notify_level"]
+        modules.append(homeassistant.HomeAssistant(api_key, server, notify_level))
         if "required" in homeassistant_secrets and homeassistant_secrets["required"]:
             required_modules.append(modules[-1])
     if "mail" in secrets:
@@ -237,9 +240,10 @@ def main(args):
         username = mail_secrets["username"] if mail_secrets["username"] else sender
         password = mail_secrets["password"]
         protocol = mail_secrets["protocol"]
+        notify_level = mail_secrets["notify_level"]
         if "required" in mail_secrets and mail_secrets["required"]:
             required_modules.append(modules[-1])
-        modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol))
+        modules.append(mail.Mail(recipients, sender, username, password, server, port, protocol, notify_level=notify_level))
 
     if type(options['remote']) == list:
         for remote in options['remote']:
