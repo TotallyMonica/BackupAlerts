@@ -43,7 +43,6 @@ class Mail:
         for recipient in self.recipients:
             print("Creating MIME Multipart")
             msg = MIMEMultipart()
-            print("Creating MIME Multipart")
             print("Setting from, to, and subject fields")
             msg['From'] = self.sender
             msg['To'] = recipient
