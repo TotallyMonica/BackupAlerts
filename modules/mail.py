@@ -30,7 +30,7 @@ class Mail:
             else:
                 body = body.replace("[[result]]", f"errored with status code {data['result']}")
 
-        print("Starting connection to SMTP server")
+        print(f"Starting connection to SMTP server {self.server}:{self.port}")
         smtp = smtplib.SMTP(self.server, self.port)
         print("Connection started")
         print("Starting TLS")
@@ -43,9 +43,11 @@ class Mail:
         for recipient in self.recipients:
             print("Creating MIME Multipart")
             msg = MIMEMultipart()
-            print("Setting from, to, and subject fields")
+            print(f"Setting from field to {self.sender}")
             msg['From'] = self.sender
+            print(f"Setting to field to {recipient}")
             msg['To'] = recipient
+            print(f"Setting subject field to {subject}")
             msg['Subject'] = subject
             print("Fields set")
             print("Attaching to message")
